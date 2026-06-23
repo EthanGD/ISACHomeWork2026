@@ -1,0 +1,501 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{multirow}
+
+\hyphenation{op-tical net-works semi-conduc-tor glo-bal co-lo-ni-za-tion}
+
+\begin{document}
+
+\title{Mobile Phone-Based 3D Point Cloud Reconstruction:\\Intelligent Perception, Visual Sensing, and the Evolution from Geometry to Neural Representations}
+
+\author{Chen Yansong 陈燕松, 
+Student ID: 202560204520004, 
+College of Intelligent Science and Engineering / Artificial Intelligence Industry College 智科院%
+\thanks{This work was submitted as a course review paper for ``College of Intelligent Science and Engineering / Artificial Intelligence Industry College.'' Correspondence: cysong702@outlook.com.}}
+
+\maketitle
+
+\begin{abstract}
+Three-dimensional reconstruction from photographic images represents a quintessential intelligent perception task: transforming raw visual signals captured by mobile cameras into structured geometric representations of the physical world. Over the past decade, this field has undergone four paradigm shifts---from classical structure-from-motion (SfM) and multi-view stereo (MVS), through neural radiance fields (NeRF) and Gaussian splatting, to the latest feed-forward transformer architectures---each redefining the frontier of sensing accuracy, computational efficiency, and generalization capability. This review systematically surveys 50 representative works from 2016 to 2026, including the provided 45-paper corpus and five supplementary studies added to cover key missing milestones in learning-based MVS, neural surface reconstruction, and large-scale geometry reasoning. We provide detailed comparative analysis across quality, speed, input flexibility, and mobile deployment readiness. Critically, we examine how advances in intelligent sensing, adaptive signal processing, and perception-communication integration have jointly driven this evolution. We identify five persistent open challenges---sparse-view reconstruction, on-device training, long-sequence scalability, semantic-geometric unification, and cross-modal sensor fusion---and discuss their implications for next-generation intelligent perception systems. This survey aims to provide researchers and practitioners with a structured technological roadmap and to highlight the deep interplay between 3D computer vision and intelligent communication systems.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Intelligent perception, 3D point cloud reconstruction, visual sensing, neural radiance fields, Gaussian splatting, structure-from-motion, mobile sensing, perception-communication integration
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{T}{hree-dimensional} reconstruction of real-world objects and scenes from two-dimensional images constitutes one of the most fundamental intelligent perception tasks in computer vision. The ability to transform raw visual signals---photons captured by a CMOS sensor---into structured, metric 3D representations of the physical world lies at the heart of machine perception. This capability enables machines to understand spatial layouts, recognize object geometries, and interact with environments in three dimensions, forming the perceptual foundation for autonomous navigation, augmented reality, digital twins, and human-robot collaboration.
+
+The past decade has witnessed an extraordinary acceleration in 3D reconstruction research, driven by three converging forces. First, the proliferation of high-resolution cameras on mobile devices has democratized visual data acquisition: modern smartphones integrate multi-lens camera systems, miniaturized LiDAR sensors, and visual-inertial odometry (VIO) engines, transforming billions of pocket devices into ubiquitous 3D scanners. Second, advances in deep learning---particularly transformer architectures and diffusion models---have fundamentally altered the reconstruction paradigm, shifting from iterative geometric optimization to single-forward-pass neural inference. Third, the growing demand for real-time 3D understanding in mobile applications---AR navigation, virtual try-on, 3D content creation---has created powerful application pull.
+
+The evolution of 3D reconstruction from photographs can be characterized by four major paradigm shifts, illustrated in Fig.~\ref{fig:timeline}.
+
+\subsection{Four Paradigm Shifts}
+
+\textbf{Shift 1: Classical Geometric Foundations (2016--2019).} The maturation of structure-from-motion (SfM) and multi-view stereo (MVS) established the bedrock of modern 3D reconstruction. COLMAP~\cite{colmap} emerged as the de facto standard pipeline, delivering robust incremental SfM with bundle adjustment. Learning-based MVS then pushed dense depth estimation forward through cost-volume reasoning and differentiable warping, exemplified by MVSNet~\cite{mvsnet} and PatchmatchNet~\cite{patchmatchnet}. Concurrently, PointNet~\cite{pointnet} and PointNet++~\cite{pointnet++} pioneered deep learning on unordered point sets, establishing foundational architectures for 3D feature learning.
+
+\textbf{Shift 2: Neural Implicit Representations (2020--2022).} Neural Radiance Fields (NeRF)~\cite{nerf} reframed 3D reconstruction as a continuous volumetric function learning problem, achieving photorealistic novel view synthesis through differentiable volume rendering. This paradigm---encoding scenes as neural network weights rather than explicit geometric primitives---spawned a rich ecosystem of extensions addressing in-the-wild imagery~\cite{nerfw}, few-shot generalization~\cite{pixelnerf}, multi-scale anti-aliasing~\cite{mipnerf}, and accelerated training~\cite{instantngp}.
+
+\textbf{Shift 3: Explicit Gaussian Representations (2023).} 3D Gaussian Splatting (3DGS)~\cite{3dgs} replaced neural implicit fields with explicit, differentiable 3D Gaussians, achieving real-time rendering at 1080p resolution with state-of-the-art visual quality. This representation proved remarkably versatile, spawning single-view variants~\cite{tgs,gamba}, diffusion-integrated frameworks~\cite{diffusiongs}, and mobile-specific adaptations~\cite{tmo,mobilebrick}.
+
+\textbf{Shift 4: Feed-Forward Transformers (2024--2026).} The current paradigm eliminates per-scene optimization entirely through large-scale transformer architectures that process hundreds of images in a single forward pass. VGGT~\cite{vggt} (CVPR 2025 Best Paper), Fast3R~\cite{fast3r}, LoGeR~\cite{loger}, and Uni3R~\cite{uni3r} represent the leading edge, achieving sub-second inference with zero-shot generalization.
+
+\subsection{Connection to Intelligent Perception and Communication}
+
+This survey is fundamentally situated within the ``Intelligent Perception and Communication'' framework. 3D reconstruction from mobile phone imagery directly engages multiple core course themes: \textit{intelligent sensing} (how camera sensors transduce optical signals into meaningful 3D data), \textit{visual perception} (how machines interpret 2D image arrays as 3D structure), \textit{signal perception and adaptive processing} (how reconstruction algorithms handle noise, varying illumination, and motion artifacts), \textit{perception-communication integration} (how reconstructed 3D data can be efficiently transmitted and shared across wireless networks), and \textit{AI-driven perception} (how deep learning enables robust, generalizable reconstruction).
+
+\subsection{Contributions and Organization}
+
+This review systematically surveys 50 representative works spanning 2016 to 2026. Our contributions are fourfold:
+\begin{enumerate}
+    \item We provide a structured six-phase taxonomy with clear technological transition mechanisms, grounded in intelligent perception principles.
+    \item We present multi-dimensional comparative analysis---reconstruction quality, inference speed, input requirements, and mobile readiness---with quantitative comparisons.
+    \item We analyze how each technological phase relates to core course concepts: visual sensing, signal processing, adaptive communication, and AI-driven perception.
+    \item We identify five critical open challenges and propose a research roadmap aligned with perception-communication integration trends.
+\end{enumerate}
+
+The paper is organized as follows. Section~II covers classical foundations. Section~III analyzes the NeRF era. Section~IV examines the Gaussian splatting revolution. Section~V surveys feed-forward transformer methods. Section~VI reviews mobile-specific approaches. Section~VII presents comparative analysis. Section~VIII discusses open challenges and future directions. Section~IX concludes.
+
+\begin{figure}[t]
+\centering
+\framebox{\parbox{0.92\columnwidth}{\centering \small \textbf{Technological Evolution Timeline}\\[3pt]
+$\underbrace{\text{2016--2017}}_{\text{Classical SfM}}$ $\rightarrow$ $\underbrace{\text{2020--2022}}_{\text{NeRF Era}}$ $\rightarrow$ $\underbrace{\text{2023}}_{\text{3DGS}}$ $\rightarrow$ $\underbrace{\text{2024--2026}}_{\text{Feed-Forward Transformers}}$\\[3pt]
+\rule{0.9\columnwidth}{0.4pt}\\
+\tiny COLMAP(16) $\bullet$ MVSNet(18) $\bullet$ PatchmatchNet(21) $\bullet$ NeRF(20) $\bullet$ RegNeRF(22) $\bullet$ NeuS(21) $\bullet$ 3DGS(23) $\bullet$ TMO(23) $\bullet$ DUSt3R(24) $\bullet$ VGGT(25) $\bullet$ LoGeR(26)
+}}
+\caption{Four paradigm shifts in 3D reconstruction from photographs (2016--2026).}
+\label{fig:timeline}
+\end{figure}
+
+\section{Classical Foundations: Geometry, Learning, and the Birth of Intelligent 3D Sensing}
+\label{sec:foundations}
+
+Intelligent 3D perception begins with the fundamental problem of recovering structure from visual signals. The classical pipeline---feature extraction, correspondence matching, geometric estimation, and dense reconstruction---embodies core principles of signal perception and adaptive processing.
+
+\subsection{Structure-from-Motion as Intelligent Sensing}
+
+Structure-from-Motion (SfM) solves the inverse problem of simultaneously estimating camera motion and 3D scene structure from a set of 2D image measurements. This can be formalized as: given $N$ images $\{I_i\}_{i=1}^N$ with unknown camera poses $\{C_i\}$ and a set of 2D feature correspondences $\{\mathbf{x}_{ij}\}$, recover the 3D points $\{\mathbf{X}_j\}$ and camera parameters such that the reprojection error $\sum_{i,j} \|\mathbf{x}_{ij} - \pi(C_i, \mathbf{X}_j)\|^2$ is minimized, where $\pi$ denotes the perspective projection function.
+
+COLMAP~\cite{colmap}, introduced in 2016, remains the most widely used SfM implementation. Its key innovations include: (1) a robust incremental reconstruction strategy with next-best-view selection that maximizes reconstruction completeness, (2) redundant view mining that identifies and exploits image pairs with overlapping content, (3) efficient bundle adjustment leveraging the Schur complement for sparse problem structure, and (4) a scene graph-based outlier filtering mechanism. These algorithmic choices exemplify adaptive signal processing---dynamically selecting which data to process and how to allocate computational resources based on the signal content itself.
+
+However, COLMAP inherits fundamental limitations of geometric approaches: it requires textured surfaces for reliable feature matching, fails under large viewpoint changes or illumination variations, and its computational cost scales super-linearly with the number of images. These limitations motivated the shift toward learning-based approaches.
+
+\subsection{Deep Learning on Point Clouds}
+
+The introduction of PointNet~\cite{pointnet} (CVPR 2017) marked the first successful application of deep learning to raw, unordered 3D point clouds. The core architectural innovation is the symmetric function:
+\begin{equation}
+f(\{x_1,\dots,x_n\}) = g \circ h(x_1,\dots,x_n) = g(\text{MAX}_{i=1}^n \{h(x_i)\})
+\end{equation}
+where $h$ is a shared MLP that maps each point to a high-dimensional feature space, and MAX pooling achieves permutation invariance. This architecture respects the fundamental nature of point cloud data as sets rather than sequences or grids.
+
+PointNet++~\cite{pointnet++} (NeurIPS 2017) extended this framework with hierarchical feature learning through nested partitioning of the metric space. By applying PointNet recursively within local neighborhoods at multiple scales, it captures both fine-grained geometric details and global contextual structure. The density-adaptive aggregation layers address the practical challenge of non-uniform sampling densities encountered in real-world 3D scans.
+
+These architectures established the computational primitives for learning-based 3D perception, enabling downstream tasks that would later become integral to reconstruction pipelines: feature matching, correspondence estimation, and geometry reasoning.
+
+\subsection{Learning-Based Multi-View Stereo as the Missing Bridge}
+
+An important bridge between classical geometry and neural radiance fields is learning-based multi-view stereo (MVS), which was not explicitly represented in the original 45-paper list but is essential for a complete review of image-based point cloud reconstruction. \textbf{MVSNet~\cite{mvsnet} (ECCV 2018)} introduced differentiable homography warping and variance-based cost-volume aggregation for unstructured image sets. Instead of hand-engineered photoconsistency metrics, it learns depth inference directly from image evidence, thereby converting dense reconstruction into an end-to-end trainable signal estimation problem.
+
+\textbf{PatchmatchNet~\cite{patchmatchnet} (CVPR 2021)} further improved the practicality of learning-based MVS through a cascade patchmatch formulation with adaptive propagation and evaluation. Compared with 3D cost-volume methods, it substantially reduces memory usage while preserving high-resolution reconstruction quality, which is especially relevant for resource-constrained mobile or edge platforms.
+
+From the perspective of intelligent perception, these MVS methods are crucial because they formalize dense depth estimation as structured inference over multiple correlated image streams. They also provide a direct conceptual precursor to later transformer-based multi-view models: both rely on cross-view information fusion, confidence estimation, and geometry-aware aggregation. For smartphone reconstruction, learning-based MVS remains highly relevant in scenarios where explicit point clouds or meshes are preferred over radiance-field rendering.
+
+\section{The NeRF Era: Neural Implicit Representations and Continuous Scene Modeling}
+\label{sec:nerf}
+
+\subsection{Fundamental Principles}
+
+Neural Radiance Fields (NeRF)~\cite{nerf}, introduced at ECCV 2020 (Best Paper Honorable Mention), represents a fundamental departure from explicit geometric representations. NeRF encodes a scene as a continuous 5D function:
+\begin{equation}
+F_{\Theta}: (\mathbf{x}, \mathbf{d}) \rightarrow (\sigma, \mathbf{c})
+\end{equation}
+where $\mathbf{x} = (x,y,z)$ is a 3D spatial coordinate, $\mathbf{d} = (\theta, \phi)$ is a 2D viewing direction, $\sigma$ is the volume density, and $\mathbf{c} = (r,g,b)$ is the view-dependent emitted radiance. This function is parameterized by an 8-layer MLP with ReLU activations and positional encoding $\gamma(p) = (\sin(2^0\pi p), \cos(2^0\pi p), \dots, \sin(2^{L-1}\pi p), \cos(2^{L-1}\pi p))$.
+
+The rendering process computes the expected color along a camera ray $\mathbf{r}(t) = \mathbf{o} + t\mathbf{d}$ through numerical quadrature:
+\begin{equation}
+\hat{C}(\mathbf{r}) = \sum_{i=1}^N T_i (1 - \exp(-\sigma_i\delta_i)) \mathbf{c}_i
+\end{equation}
+where $T_i = \exp(-\sum_{j=1}^{i-1} \sigma_j\delta_j)$ is the accumulated transmittance and $\delta_i$ is the distance between adjacent samples. The network is optimized by minimizing the mean squared error between rendered and ground truth pixel colors.
+
+From an intelligent perception perspective, NeRF embodies a key insight: rather than explicitly modeling geometry and appearance as separate entities, it learns a unified continuous representation that jointly encodes shape, reflectance, and view-dependent effects. This holistic approach to scene representation aligns with principles of adaptive signal perception, where the representation itself adapts to the data characteristics.
+
+\subsection{Critical Extensions}
+
+\textbf{NeRF in the Wild~\cite{nerfw} (CVPR 2021)} extended NeRF to unconstrained internet photo collections by introducing per-image appearance embeddings and transient head modeling. The appearance embedding $\ell^{(i)}$ captures photometric variations across images (illumination, white balance, film stock), while the transient head predicts per-image uncertainty and transient occluders. This decomposition enables the model to disentangle static scene structure from transient phenomena---a form of robust signal separation central to intelligent perception.
+
+\textbf{PixelNeRF~\cite{pixelnerf} (CVPR 2021)} achieved cross-scene generalization by conditioning the NeRF on image features extracted from one or few input views via a CNN encoder. The conditional radiance field is:
+\begin{equation}
+F_{\Theta}(\mathbf{x}, \mathbf{d}, \{I^{(i)}\}) = (\sigma, \mathbf{c})
+\end{equation}
+This enables zero-shot novel view synthesis without per-scene retraining, representing a significant step toward generalizable intelligent perception.
+
+\textbf{Mip-NeRF~\cite{mipnerf} (ICCV 2021)} addressed aliasing artifacts by introducing Integrated Positional Encoding (IPE), which casts conical frustums rather than infinitesimal rays. The IPE encodes the Gaussian approximation of the frustum footprint:
+\begin{equation}
+\gamma^*(\boldsymbol{\mu}, \boldsymbol{\Sigma}) = \mathbb{E}_{\mathbf{x} \sim \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})}[\gamma(\mathbf{x})]
+\end{equation}
+This multi-scale representation enables anti-aliased rendering at arbitrary resolutions, analogous to mipmapping in traditional graphics.
+
+\textbf{Instant NGP~\cite{instantngp} (SIGGRAPH 2022)} achieved dramatic acceleration (training in seconds vs. hours) through a multiresolution hash encoding. The encoding maps each spatial coordinate to $L$ resolution levels, each with a hash table of size $T$, and the $d$-dimensional feature at each level is interpolated from the $2^d$ nearest voxel vertices. This data structure achieves the efficiency of explicit volumetric representations while maintaining the memory efficiency of implicit neural representations.
+
+\textbf{RegNeRF~\cite{regnerf} (CVPR 2022)} addressed a critical sparse-input limitation of NeRF by regularizing geometry and appearance on unseen viewpoints and annealing the ray sampling space during training. For mobile capture, where users often provide only a handful of photos, this line of work is highly relevant because it narrows the gap between ideal dense capture and realistic sparse-view acquisition.
+
+\textbf{NeuS~\cite{neus} (NeurIPS 2021)} provided another missing milestone by replacing density-based implicit geometry with a signed distance function (SDF) and a bias-reduced volume rendering formulation. NeuS demonstrated that neural rendering and high-fidelity surface reconstruction need not be separate objectives. This insight is particularly important when the final deliverable is not only view synthesis but also a metrically reliable point cloud or mesh for downstream sensing tasks.
+
+\begin{table}[t]
+\caption{Comparative analysis of NeRF-era methods from a signal perception perspective.}
+\label{tab:nerf_compare}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.3cm}>{\centering\arraybackslash}p{0.62cm}>{\centering\arraybackslash}p{1.08cm}>{\raggedright\arraybackslash}p{3.55cm}}
+\toprule
+Method & Year & \shortstack{Per-Scene\\Opt.} & \shortstack{Key Perception\\Innovation} \\
+\midrule
+NeRF & 2020 & Required & Continuous 5D signal representation \\
+NeRF-W & 2021 & Required & Transient-robust signal separation \\
+PixelNeRF & 2021 & \textbf{No} & Conditional cross-scene generalization \\
+Mip-NeRF & 2021 & Required & Multi-scale anti-aliased sensing \\
+Instant NGP & 2022 & Required & Hash-based adaptive signal encoding \\
+RegNeRF & 2022 & Required & Sparse-view regularization for mobile capture \\
+NeuS & 2021 & Required & Surface-accurate neural reconstruction \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{The Gaussian Splatting Revolution: Explicit Real-Time Radiance Fields}
+\label{sec:3dgs}
+
+\subsection{3D Gaussian Splatting}
+
+3D Gaussian Splatting (3DGS)~\cite{3dgs}, presented at SIGGRAPH 2023, marked a paradigm shift by replacing neural implicit representations with explicit, differentiable 3D Gaussians. Each Gaussian is characterized by: mean $\boldsymbol{\mu} \in \mathbb{R}^3$, covariance matrix $\boldsymbol{\Sigma} \in \mathbb{R}^{3\times 3}$ (parameterized as $\boldsymbol{\Sigma} = \mathbf{R}\mathbf{S}\mathbf{S}^T\mathbf{R}^T$ for optimization), opacity $\alpha \in [0,1]$, and spherical harmonic coefficients $\{\mathbf{c}_{lm}\}$ for view-dependent color.
+
+The rendering process projects 3D Gaussians to 2D via the camera's viewing transformation $\mathbf{W}$ and the Jacobian $\mathbf{J}$ of the projective transform:
+\begin{equation}
+\boldsymbol{\Sigma}' = \mathbf{J}\mathbf{W}\boldsymbol{\Sigma}\mathbf{W}^T\mathbf{J}^T
+\end{equation}
+The 2D Gaussians are then $\alpha$-blended in front-to-back depth order:
+\begin{equation}
+\mathbf{C} = \sum_{i=1}^N \mathbf{c}_i \alpha_i \prod_{j=1}^{i-1} (1 - \alpha_j)
+\end{equation}
+
+From an intelligent sensing perspective, 3DGS achieves a critical balance: it combines the differentiability of volumetric representations with the rendering efficiency of point-based methods. The explicit Gaussian representation enables direct geometric manipulation and editing, which is essential for downstream perception tasks.
+
+\subsection{Single-View and Hybrid Variants}
+
+\textbf{Triplane Gaussian Splatting (TGS)~\cite{tgs} (CVPR 2024)} introduced a hybrid Triplane-Gaussian representation for single-view reconstruction. A point decoder generates explicit point clouds from image features, while a triplane decoder provides detail-refining features queried at each point location. The 3D Gaussians are decoded by an MLP from the concatenated point and triplane features. This hybrid approach balances the speed of explicit representations with the detail of implicit features.
+
+\textbf{Gamba~\cite{gamba} (ECCV 2024)} married Gaussian splatting with Mamba state-space models for single-view 3D reconstruction. The GambaFormer processes image tokens through linear-complexity selective scan operations, predicting 3D Gaussian parameters in 0.05 seconds---approximately 1,000$\times$ faster than optimization-based methods. This efficiency milestone makes real-time single-view 3D perception feasible on commodity hardware.
+
+\textbf{DiffusionGS~\cite{diffusiongs} (2024)} integrated 3DGS into a diffusion denoising framework, directly outputting 3D Gaussian point clouds at each denoising timestep. The model employs a scene-object mixed training strategy with Random Projection-Pose Conditioning (RPPC) to learn general 3D priors, achieving 2.20 dB PSNR improvement without requiring a depth estimator.
+
+\subsection{Learning-Driven Enhancements}
+
+\textbf{LAM3D~\cite{lam3d} (2024)} introduced a point-cloud-based network that compresses point clouds into compact latent tri-planes via a hierarchical encoder-decoder. An Image-Point-Cloud Feature Alignment module then transfers single-view image features to these latent tri-planes, enabling high-fidelity 3D mesh reconstruction in 6 seconds. This approach demonstrates how explicit point cloud priors can guide the reconstruction of complete 3D geometry from partial observations.
+
+\textbf{GS-RGBN~\cite{gsrgbn} (2025)} proposed a hybrid Voxel-Gaussian model where each Gaussian is constrained within a voxel grid containing projected 2D image features. A cross-volume fusion module leverages RGB and normal images through multi-head cross-attention, producing fused features that enhance geometric detail. This multi-modal fusion approach aligns with perception-communication integration principles.
+
+\section{Feed-Forward Transformer Methods: The Era of Generalizable Instant Reconstruction}
+\label{sec:feedforward}
+
+\subsection{Pairwise Pointmap Regression}
+
+\textbf{DUSt3R~\cite{dust3r} (CVPR 2024)} pioneered the direct regression of 3D pointmaps from image pairs without requiring camera poses. The model uses a CroCo (Cross-View Completion) pre-trained vision transformer encoder-decoder architecture:
+\begin{equation}
+(\mathbf{P}^{(1)}, \mathbf{P}^{(2)}) = \Phi(I^{(1)}, I^{(2)})
+\end{equation}
+where $\mathbf{P}^{(i)} \in \mathbb{R}^{H\times W\times 3}$ is a dense pointmap in the coordinate frame of image $i$. A confidence-aware regression loss enables robust training. This formulation eliminates the multi-stage pipeline of feature matching, pose estimation, and triangulation, collapsing the entire SfM process into a single feed-forward pass.
+
+\textbf{MV-DUSt3R+~\cite{mvdust3r} (2024)} extended this to jointly process 4--24 views in one stage, completely removing the pairwise global alignment cascade. A cross-attention mechanism enables information flow across all views simultaneously, achieving 48--78$\times$ speedup over pairwise DUSt3R while reducing Chamfer distance by 1.7--2$\times$ on multi-room scenes.
+
+\subsection{Large-Scale Unified Models}
+
+\textbf{VGGT~\cite{vggt} (CVPR 2025 Best Paper)} represents the current state of the art in feed-forward 3D reconstruction. VGGT is a large transformer that processes 1 to hundreds of images in under one second, directly predicting:
+\begin{itemize}
+    \item Extrinsic and intrinsic camera parameters $\{C_i, K_i\}$
+    \item Depth maps $\{D_i\}$ and point maps $\{\mathbf{P}_i\}$
+    \item 3D point tracks $\{\mathbf{T}_{ij}\}$
+\end{itemize}
+The network architecture follows a standard encoder-decoder design with DINOv2 initialization, processing all views jointly through global attention. Remarkably, VGGT often outperforms optimization-based alternatives without any post-processing, challenging the long-held assumption that explicit geometric optimization is necessary for accurate 3D reconstruction.
+
+\textbf{Uni3R~\cite{uni3r} (CVPR 2026 Highlight)} unifies 3D reconstruction with open-vocabulary semantic understanding. A Cross-View Transformer integrates information across arbitrary multi-view inputs, regressing 3D Gaussian primitives endowed with semantic feature fields:
+\begin{equation}
+\{\mathcal{G}_k\} = \Psi(\{I^{(i)}\}), \quad \mathcal{G}_k = (\boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k, \alpha_k, \mathbf{c}_k, \mathbf{s}_k)
+\end{equation}
+where $\mathbf{s}_k \in \mathbb{R}^d$ is a semantic feature vector enabling text-queryable 3D segmentation. This unified representation achieves state-of-the-art performance on novel view synthesis, semantic segmentation, and depth prediction simultaneously.
+
+\subsection{Scalability and Efficiency}
+
+\textbf{Fast3R~\cite{fast3r} (CVPR 2026)} addresses the quadratic complexity of full attention by introducing a dual-branch mechanism. A compression branch creates coarse contextual priors that guide a selection branch, which performs fine-grained attention only on the most informative image tokens. This achieves 12.4$\times$ inference speedup on 1000-view sequences while maintaining competitive accuracy.
+
+\textbf{Speed3R~\cite{speed3r} (CVPR 2026)} further pushes the efficiency frontier through a trainable sparse attention mechanism inspired by classical keypoint matching. At its core, Speed3R learns to identify and attend to informative tokens, mimicking the feature selection step in traditional SfM.
+
+\textbf{LoGeR~\cite{loger} (Google DeepMind, CVPR 2026)} introduces hybrid memory mechanisms that combine local precise memory (storing recent keyframes with full resolution) with global compressed memory (summarizing distant frames through learned compression). This dual-memory architecture handles up to 19,000 frames covering 11+ km, achieving 74\% reduction in absolute trajectory error on KITTI.
+
+\textbf{RnG~\cite{rng} (CVPR 2026)} offers a fundamentally different perspective: it reinterprets the Transformer's KV-Cache as an implicit 3D representation. By caching intermediate attention keys and values across processing steps, RnG accumulates 3D geometric understanding without explicit point cloud storage. This achieves 300$\times$ speedup over diffusion-based methods while maintaining high-quality geometry.
+
+\begin{table}[t]
+\caption{Feed-forward transformer methods: scalability and efficiency comparison.}
+\label{tab:transformer_compare}
+\centering
+\small
+\begin{tabular}{p{1.8cm}p{1.2cm}p{1.2cm}p{1.5cm}p{1.5cm}}
+\toprule
+Method & Year & Max Views & Inference & Post-Proc. \\
+\midrule
+DUSt3R & 2024 & 2 (pair) & -- & Yes \\
+MV-DUSt3R+ & 2024 & 24 & 0.1--0.3s & No \\
+VGGT & 2025 & 500+ & <1s & Optional \\
+Fast3R & 2026 & 1000+ & 0.5s & No \\
+Speed3R & 2026 & 1000+ & 0.08s & No \\
+LoGeR & 2026 & 19,000 & seconds & No \\
+RnG & 2026 & 50+ & 85ms & No \\
+Uni3R & 2026 & 50+ & <1s & No \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Mobile-Device-Specific Approaches}
+\label{sec:mobile}
+
+Mobile platforms present unique constraints for 3D reconstruction: limited computational resources, power constraints, noisy sensor data, and the need for real-time user feedback. These constraints have driven specialized approaches that leverage mobile-specific hardware and usage patterns.
+
+\subsection{Smartphone LiDAR Integration}
+
+Modern iPhones (iPhone 13 Pro and later) integrate miniaturized LiDAR scanners that provide low-resolution depth maps (192$\times$256 at 10 fps) alongside high-resolution RGB images (1440$\times$1920). \textbf{AGS-Mesh~\cite{agsmesh} (2024)} exploits this multi-modal sensing capability for indoor room reconstruction. The pipeline first optimizes 3DGS from RGB-LiDAR data, then back-projects learned depth maps into a point cloud for IsoOctree meshing with adaptive subdivision.
+
+\textbf{TMO~\cite{tmo} (CVPR 2023)} presents a complete smartphone acquisition pipeline combining RGBD-aided SfM, neural implicit surface reconstruction, and differentiable rendering for texture refinement. The RGBD-aided SfM filters noisy ARKit depth maps and refines camera poses before neural reconstruction, demonstrating how coarse geometric priors can bootstrap high-quality results.
+
+\textbf{MobileBrick~\cite{mobilebrick} (CVPR 2023)} contributed a large-scale mobile RGBD dataset of 153 LEGO objects with precise 3D ground truth, captured using iPhone 13 Pro. This dataset enables systematic evaluation of reconstruction algorithms under realistic mobile capture conditions.
+
+\subsection{On-Device Training}
+
+\textbf{PocketGS~\cite{pocketgs} (2026)} achieves fully on-device 3DGS training under minute-scale budgets. Three co-designed operators resolve the fundamental contradictions of standard 3DGS on mobile hardware:
+\begin{itemize}
+    \item $\mathcal{G}$: Geometry-faithful point cloud priors derived from ARKit sparse reconstruction
+    \item $\mathcal{I}$: Local surface statistics injection for seeding anisotropic Gaussians
+    \item $\mathcal{T}$: Unrolled alpha compositing with cached intermediates and index-mapped gradient scattering for stable mobile backpropagation
+\end{itemize}
+On the MobileScan dataset (phone-captured scenes with motion blur, defocus, and exposure variation), PocketGS outperforms workstation 3DGS baselines while running entirely on-device.
+
+\subsection{Capture-Centric Optimization}
+
+\textbf{LighthouseGS~\cite{lighthousegs} (2025)} addresses panorama-style (rotation-dominant) mobile captures common in indoor photography. The plane scaffold assembly method combines ARKit camera poses with monocular depth estimates, enforcing global and local consistency through planar structure constraints. A geometry-aware pruning strategy retains high-confidence Gaussians in non-textured regions, enabling stable optimization under the narrow baselines typical of panorama captures.
+
+\textbf{Object-Centered Acquisition~\cite{objacq} (2026)} provides on-device capture guidance for object-centric 3DGS. Device orientations are calibrated and aligned to an object-centered spherical grid for uniform viewpoint indexing. Area-weighted spherical coverage is computed in real-time to guide user motion, achieving superior reconstruction quality with fewer images compared to free capture or RealityScan.
+
+\textbf{Cloud-Native Pipeline~\cite{cloudnative} (2024)} adopts a microservices architecture for server-side reconstruction from monocular smartphone images, leveraging NVIDIA machine learning models with Google ARCore pose compensation.
+
+\begin{table}[t]
+\caption{Mobile-specific 3D reconstruction methods: hardware and capability comparison.}
+\label{tab:mobile_compare}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.35cm}>{\centering\arraybackslash}p{1.05cm}>{\centering\arraybackslash}p{1.05cm}>{\raggedright\arraybackslash}p{2.65cm}}
+\toprule
+Method & Hardware & \shortstack{Training\\Location} & Key Feature \\
+\midrule
+TMO & \shortstack{RGB+\\LiDAR+\\VIO} & Server & Complete mobile pipeline \\
+MobileBrick & \shortstack{RGB+\\LiDAR} & Dataset & 153-object benchmark \\
+AGS-Mesh & \shortstack{RGB+\\LiDAR} & Server & IsoOctree meshing \\
+PocketGS & \shortstack{RGB+\\VIO} & \shortstack{\textbf{On-}\\\textbf{device}} & First on-device 3DGS \\
+LighthouseGS & \shortstack{RGB+\\VIO} & Server & Panorama capture \\
+Obj. Acquisition & \shortstack{RGB+\\VIO} & Server & Guided capture \\
+Cloud-Native & \shortstack{Mono\\RGB} & Cloud & Microservice pipeline \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{Comparative Analysis and Discussion}
+\label{sec:analysis}
+
+\subsection{Multi-Dimensional Performance Comparison}
+
+Table~\ref{tab:overall_compare} presents a comprehensive comparison of the major reconstruction paradigms across five key dimensions relevant to intelligent perception.
+
+\begin{table}[t]
+\caption{Comparative analysis of major reconstruction paradigms across intelligent perception criteria.}
+\label{tab:overall_compare}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.4cm}>{\centering\arraybackslash}p{0.7cm}>{\centering\arraybackslash}p{0.72cm}>{\centering\arraybackslash}p{0.74cm}>{\centering\arraybackslash}p{0.78cm}>{\centering\arraybackslash}p{0.78cm}}
+\toprule
+Paradigm & Quality & Speed & Views & \shortstack{Pose\\Req.} & \shortstack{Mobile\\Ready} \\
+\midrule
+SfM (COLMAP) & High & Hours & 2+ & Auto & No \\
+Learning MVS & High & Mins & 3+ & Req. & Lim. \\
+NeRF & V.High & Hours & 20+ & Req. & No \\
+Neural Surface & V.High & Hours & 20+ & Req. & No \\
+3DGS & V.High & Mins & 20+ & Req. & Lim. \\
+NeRF Ext. & High & M-Hrs & 1-2 & Opt. & No \\
+3DGS Ext. & High & S-Mins & 1-2 & Opt. & Some \\
+Feed-Fwd TF & High & <1s & 1-500+ & No & Maybe \\
+Mobile-Spec. & M-High & S-Mins & 20-100 & Auto & \textbf{Yes} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{Technology Penetration and Timeline}
+
+The pace of innovation has accelerated dramatically. The geometric paradigm (COLMAP, PointNet family) matured over approximately 4 years (2015--2019). The NeRF paradigm saw roughly 2.5 years of dominance (2020--mid-2023). The 3DGS paradigm, while still vibrant, began spawning feed-forward derivatives within months. The feed-forward transformer paradigm, now in its second year, has produced more than 15 distinct models with meaningful architectural innovations.
+
+\subsection{Toward Perception-Communication Integration}
+
+A crucial dimension not captured in previous surveys is the potential for perception-communication co-design. Reconstructed 3D data---whether point clouds, Gaussian parameters, or neural network weights---must be transmitted across wireless networks for cloud processing, multi-agent sharing, or remote rendering. Recent feed-forward methods produce compact representations suitable for transmission: VGGT's pointmaps are dense but compressible; 3DGS parameters can be quantized; and RnG's KV-Cache representation opens possibilities for progressive transmission. This convergence of 3D perception with communication efficiency represents a frontier aligned with the core mission of ``Intelligent Perception and Communication.''
+
+\subsection{System-Level Implications for Smartphone Reconstruction}
+
+For mobile phone capture, the reconstruction pipeline should be viewed as a sensing-computing-communication loop rather than a purely vision algorithm. First, \emph{sensing quality} depends on capture trajectory, exposure stability, motion blur suppression, and sensor fusion among RGB, LiDAR, and VIO streams. Second, \emph{computing strategy} must decide whether optimization runs fully on-device (PocketGS), partially at the edge, or entirely in the cloud. Third, \emph{communication efficiency} determines whether raw images, compressed features, sparse geometry, or Gaussian parameters are transmitted. This systems view explains why methods such as Object-Centered Acquisition, LighthouseGS, and Cloud-Native Pipeline are academically important even when their core network architectures are not the most accurate: they target the full deployment chain that a practical intelligent perception system must satisfy.
+
+\section{Open Challenges and Future Directions}
+\label{sec:challenges}
+
+Despite extraordinary progress, several fundamental challenges remain unresolved.
+
+\subsection{Sparse-View and Single-View Reconstruction}
+
+Reconstructing complete, accurate geometry from very few (1--6) images remains fundamentally ill-posed. Recent progress has been driven by generative priors: \textbf{S2C-3D~\cite{s2c3d} (CVPR 2026)} uses a scene-specific diffusion model for image restoration combined with training-free view-consistency conditioned sampling, achieving complete scene reconstruction from just 6--8 images. \textbf{DepR~\cite{depr} (2025)} integrates depth-guided conditioning into instance-level diffusion, using depth back-projection to align reconstructed objects with the input scene layout. \textbf{SPAR3D~\cite{spar3d} (2025)} employs a two-stage approach: a lightweight point diffusion model generates sparse point clouds capturing the distribution of plausible geometries, followed by a meshing stage that uses input image features to produce detailed meshes aligned with visible surfaces.
+
+\subsection{On-Device Training}
+
+PocketGS~\cite{pocketgs} has demonstrated feasibility, but deploying high-quality reconstruction on mobile devices with strict compute, memory, and energy budgets remains largely unsolved. Key challenges include: (a) GPU memory constraints (current 3DGS requires 4--8 GB VRAM), (b) battery consumption (training requires sustained high-performance computation), (c) thermal throttling on mobile SoCs, and (d) integration with mobile capture workflows.
+
+\subsection{Long-Sequence and Large-Scale Processing}
+
+LoGeR's~\cite{loger} handling of 19K frames represents a significant milestone, but scaling to city-scale reconstructions with millions of images while maintaining global consistency remains challenging. \textbf{MERG3R~\cite{merg3r} (CVPR 2026)} proposes a divide-and-conquer approach that partitions unordered images into overlapping geometrically diverse subsets, achieving consistent reconstruction of 1000+ image sequences within GPU memory constraints.
+
+\subsection{Semantic-Geometric Unified Understanding}
+
+Uni3R~\cite{uni3r} and SegVGGT~\cite{segvggt} represent early efforts toward joint 3D reconstruction and semantic understanding. However, existing methods treat semantics as an additional output channel rather than deeply integrating it into the reconstruction process. Future work should explore: (a) semantically-aware Gaussian initialization and pruning, (b) language-guided reconstruction where text descriptions guide geometry inference, and (c) interactive reconstruction where user feedback refines both geometry and semantics.
+
+\subsection{Cross-Modal and Multi-Sensor Fusion}
+
+Current mobile methods primarily exploit RGB-LiDAR-VIO fusion. Future intelligent perception systems will integrate a wider array of sensing modalities: WiFi signals for through-wall sensing, millimeter-wave radar for robust depth under adverse conditions, and audio for material property inference. \textbf{NeVStereo~\cite{nevstereo} (2026)} demonstrates the benefits of coupling NeRF-based novel view synthesis with multi-view stereo depth estimation and bundle adjustment, achieving state-of-the-art mesh quality (F1 91.93\%, Chamfer 4.35 mm) across indoor, outdoor, and aerial benchmarks.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This survey has traced the remarkable evolution of 3D point cloud reconstruction from photographic images over the past decade, covering 50 representative works organized into six technological phases. By supplementing the provided 45-paper corpus with MVSNet, PatchmatchNet, RegNeRF, NeuS, and MERG3R, the survey captures the key bridge from classical geometry to neural rendering, surface-aware reconstruction, and large-scale geometry reasoning. The field has progressed from slow, offline, per-scene optimization---exemplified by COLMAP's geometry-based SfM---to real-time, generalizable, single-forward-pass reconstruction achieved by VGGT, Fast3R, and LoGeR. Mobile devices have simultaneously evolved from passive image capture tools to active perception platforms with integrated LiDAR and VIO capabilities.
+
+From the perspective of ``Intelligent Perception and Communication,'' this evolution embodies the convergence of multiple course themes: intelligent sensing (how camera and LiDAR transduce physical signals), signal perception (how neural networks interpret 2D image arrays as 3D structure), adaptive processing (how algorithms dynamically allocate computational resources), and perception-communication integration (how compact 3D representations enable efficient transmission).
+
+Five critical open challenges remain: sparse-view reconstruction, on-device training, long-sequence scalability, semantic-geometric unification, and cross-modal fusion. Addressing these challenges will require continued integration of computer vision, machine learning, wireless communication, and embedded systems---the interdisciplinary foundation of intelligent perception and communication.
+
+\begin{thebibliography}{50}
+
+\bibitem{colmap} J.~L. Sch\"onberger and J.-M. Frahm, ``Structure-from-motion revisited,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Las Vegas, NV, USA, 2016, pp. 4104--4113.
+
+\bibitem{pointnet} C.~R. Qi, H.~Su, K.~Mo, and L.~J. Guibas, ``PointNet: Deep learning on point sets for 3D classification and segmentation,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Honolulu, HI, USA, 2017, pp. 652--660.
+
+\bibitem{pointnet++} C.~R. Qi, L.~Yi, H.~Su, and L.~J. Guibas, ``PointNet++: Deep hierarchical feature learning on point sets in a metric space,'' in \textit{Proc. Adv. Neural Inf. Process. Syst. (NeurIPS)}, Long Beach, CA, USA, 2017, pp. 5099--5108.
+
+\bibitem{mvsnet} Y.~Yao, Z.~Luo, S.~Li, T.~Fang, and L.~Quan, ``MVSNet: Depth inference for unstructured multi-view stereo,'' in \textit{Proc. Eur. Conf. Comput. Vis. (ECCV)}, Munich, Germany, 2018, pp. 767--783.
+
+\bibitem{patchmatchnet} F.~Wang, S.~Galliani, C.~Vogel, P.~Speciale, and M.~Pollefeys, ``PatchmatchNet: Learned multi-view patchmatch stereo,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Nashville, TN, USA, 2021, pp. 14194--14203.
+
+\bibitem{nerf} B.~Mildenhall, P.~P. Srinivasan, M.~Tancik, J.~T. Barron, R.~Ramamoorthi, and R.~Ng, ``NeRF: Representing scenes as neural radiance fields for view synthesis,'' in \textit{Proc. Eur. Conf. Comput. Vis. (ECCV)}, Glasgow, UK, 2020, pp. 405--421.
+
+\bibitem{nerfw} R.~Martin-Brualla, N.~Radwan, M.~S.~M. Sajjadi, J.~T. Barron, A.~Dosovitskiy, and D.~Duckworth, ``NeRF in the wild: Neural radiance fields for unconstrained photo collections,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Nashville, TN, USA, 2021, pp. 7210--7219.
+
+\bibitem{pixelnerf} A.~Yu, V.~Ye, M.~Tancik, and A.~Kanazawa, ``PixelNeRF: Neural radiance fields from one or few images,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Nashville, TN, USA, 2021, pp. 4578--4587.
+
+\bibitem{mipnerf} J.~T. Barron, B.~Mildenhall, M.~Tancik, P.~P. Srinivasan, and R.~Ng, ``Mip-NeRF: A multiscale representation for anti-aliasing neural radiance fields,'' in \textit{Proc. IEEE Int. Conf. Comput. Vis. (ICCV)}, Montreal, Canada, 2021, pp. 5855--5864.
+
+\bibitem{instantngp} T.~M\"uller, A.~Evans, C.~Schied, and A.~Keller, ``Instant neural graphics primitives with a multiresolution hash encoding,'' \textit{ACM Trans. Graph.}, vol.~41, no.~4, pp. 1--15, Jul. 2022.
+
+\bibitem{regnerf} M.~Niemeyer, J.~T. Barron, B.~Mildenhall, M.~S.~M. Sajjadi, A.~Geiger, and N.~Radwan, ``RegNeRF: Regularizing neural radiance fields for view synthesis from sparse inputs,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, New Orleans, LA, USA, 2022, pp. 5470--5480.
+
+\bibitem{neus} P.~Wang, L.~Liu, Y.~Liu, C.~Theobalt, T.~Komura, and W.~Wang, ``NeuS: Learning neural implicit surfaces by volume rendering for multi-view reconstruction,'' in \textit{Proc. Adv. Neural Inf. Process. Syst. (NeurIPS)}, 2021.
+
+\bibitem{3dgs} B.~Kerbl, G.~Kopanas, T.~Leimk\"uhler, and G.~Drettakis, ``3D Gaussian splatting for real-time radiance field rendering,'' \textit{ACM Trans. Graph.}, vol.~42, no.~4, pp. 1--14, Jul. 2023.
+
+\bibitem{tgs} Z.~Zou, Z.~Yu, Y.~Guo, and Y.~Li, ``Triplane meets Gaussian splatting: Fast and generalizable single-view 3D reconstruction with transformers,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2024.
+
+\bibitem{dust3r} S.~Wang, V.~Leroy, Y.~Cabi\~nelles, and B.~Dai, ``DUSt3R: Geometric 3D vision made easy,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2024.
+
+\bibitem{gamba} Q.~Shen, X.~Huang, J.~Yuan, and Y.~Liu, ``Gamba: Marry Gaussian splatting with Mamba for single-view 3D reconstruction,'' in \textit{Proc. Eur. Conf. Comput. Vis. (ECCV)}, Milan, Italy, 2024.
+
+\bibitem{flash3d} S.~Szymanowicz, E.~Insafutdinov, C.~Zheng, D.~Campbell, J.~F. Henriques, C.~Rupprecht, and A.~Vedaldi, ``Flash3D: Feed-forward generalisable 3D scene reconstruction from a single image,'' in \textit{Proc. Int. Conf. 3D Vis. (3DV)}, Singapore, 2025.
+
+\bibitem{diffusiongs} Y.~Cai, J.~Huang, D.~Xu, and X.~Qi, ``DiffusionGS: Baking Gaussian splatting into diffusion denoiser for fast and scalable single-stage image-to-3D generation and reconstruction,'' 2024, arXiv:2411.14384.
+
+\bibitem{mvdust3r} Y.~Cheng, H.~Li, X.~Chen, and W.~Yin, ``MV-DUSt3R+: Single-stage multi-view dense 3D reconstruction,'' 2024, arXiv:2412.06974.
+
+\bibitem{vggt} J.~Wang, M.~Chen, N.~Karaev, A.~Vedaldi, C.~Rupprecht, and D.~Novotny, ``VGGT: Visual geometry grounded transformer,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Nashville, TN, USA, 2025, pp. 5294--5306.
+
+\bibitem{fast3r} J.~Yang, A.~Sax, K.~J. Liang, M.~Henaff, H.~Tang, A.~Cao, J.~Chai, F.~Meier, and M.~Feiszli, ``Fast3R: Towards 3D reconstruction of 1000+ images in one forward pass,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{loger} Google DeepMind, ``LoGeR: Long-context geometric reconstruction with hybrid memory,'' 2026, arXiv:2603.03269.
+
+\bibitem{glosplat} L.~K. Cheng, A.~Shaikh, R.~Liang, Z.~Wu, Y.~Guan, and N.~Vijaykumar, ``GloSplat: Joint pose-appearance optimization for faster and more accurate 3D reconstruction,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{uni3r} X.~Sun, H.~Jiang, L.~Liu, S.~Nam, G.~Kang, X.~Wang, W.~Sui, Z.~Su, W.~Liu, X.~Wang, and E.~Park, ``Uni3R: Unified 3D reconstruction and semantic understanding via generalizable Gaussian splatting from unposed multi-view images,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{speed3r} J.~Yang, K.~J. Liang, H.~Tang, A.~Sax, M.~Feiszli, and F.~Meier, ``Speed3R: Sparse feed-forward 3D reconstruction models,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{rng} Z.~Li, Y.~Wang, and X.~Zhou, ``RnG: A unified transformer for complete 3D modeling from partial observations,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{tmo} J.~Lee, J.~Kim, and J.~Park, ``TMO: Textured mesh acquisition of objects with a mobile device by using differentiable rendering,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Vancouver, Canada, 2023.
+
+\bibitem{mobilebrick} Z.~Li, Y.~Shao, X.~Li, and Y.~Cai, ``MobileBrick: Building LEGO for 3D reconstruction on mobile devices,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Vancouver, Canada, 2023.
+
+\bibitem{agsmesh} H.~Wang, X.~Liu, and J.~Yang, ``AGS-Mesh: Adaptive Gaussian splatting and meshing with geometric priors for indoor room reconstruction using smartphones,'' 2024, arXiv:2411.19271.
+
+\bibitem{pocketgs} Y.~Li, Z.~Chen, and S.~Liu, ``PocketGS: On-device training of 3D Gaussian splatting for high perceptual modeling,'' 2026, arXiv:2601.17354.
+
+\bibitem{lighthousegs} Z.~Wu, H.~Cheng, and L.~Liu, ``LighthouseGS: Indoor structure-aware 3D Gaussian splatting for panorama-style mobile captures,'' 2025, arXiv:2507.06109.
+
+\bibitem{objacq} R.~Kim, S.~Lee, and H.~Park, ``An object-centered data acquisition method for 3D Gaussian splatting using mobile phones,'' 2026, arXiv:2604.19216.
+
+\bibitem{cloudnative} P.~Nowak, M.~Zawadzki, and K.~Goc, ``Scalable cloud-native pipeline for efficient 3D model reconstruction from monocular smartphone images,'' 2024, arXiv:2409.19322.
+
+\bibitem{s2c3d} Y.~Zhang, L.~Liu, X.~Wang, and W.~Sui, ``S2C-3D: Sparse-to-complete 3D scene reconstruction from few images,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{depr} Y.~Chen, K.~Zhang, and H.~Li, ``DepR: Depth-guided single-view scene reconstruction with instance-level diffusion,'' 2025, arXiv:2507.22825.
+
+\bibitem{segvggt} Y.~Wang, Z.~Li, and J.~Zhang, ``SegVGGT: Joint 3D reconstruction and instance segmentation from multi-view images,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{spar3d} M.~Boss, Z.~Huang, A.~Vasishta, and V.~Jampani, ``SPAR3D: Stable point-aware reconstruction of 3D objects from single images,'' 2025, arXiv:2501.04689.
+
+\bibitem{matrix3d} Y.~Zhou, X.~Chen, and S.~Zhang, ``Matrix3D: Large photogrammetry model all-in-one,'' 2025, arXiv:2502.07685.
+
+\bibitem{pe3r} J.~Hu, Z.~Liu, and J.~Yang, ``PE3R: Perception-efficient 3D reconstruction,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{rgb2point} H.~Li, Y.~Zhong, and J.~Chen, ``RGB2Point: 3D point cloud generation from single RGB images,'' 2024, arXiv:2407.14979.
+
+\bibitem{lam3d} W.~Zhang, X.~Li, and Y.~Guo, ``LAM3D: Large image-point-cloud alignment model for 3D reconstruction from single image,'' 2024, arXiv:2405.15622.
+
+\bibitem{mspmvs} Z.~Li, Y.~Wang, and X.~Chen, ``MSP-MVS: Multi-granularity segmentation prior guided multi-view stereo,'' 2024, arXiv:2407.19323.
+
+\bibitem{gsrgbn} Y.~Zhao, J.~Li, and H.~Liu, ``GS-RGBN: High-fidelity 3D object generation with RGBN-volume Gaussian reconstruction model,'' 2025, arXiv:2504.01512.
+
+\bibitem{nevstereo} X.~Li, Y.~Chen, and Z.~Zhang, ``NeVStereo: A NeRF-driven NVS-stereo architecture for high-fidelity 3D tasks,'' 2026, arXiv:2602.05423.
+
+\bibitem{ggpt} Y.~Chen, Y.~Wang, X.~Zhang, S.~Prokudin, and S.~Tang, ``GGPT: Geometry grounded point transformer for sparse-view 3D reconstruction,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\bibitem{unirecgen} Z.~Wang, Y.~Li, and J.~Xie, ``UniRecGen: Unifying multi-view 3D reconstruction and generation,'' 2026, arXiv:2604.01479.
+
+\bibitem{dejaview} S.~Elflein, J.~Yang, K.~J. Liang, H.~Tang, and M.~Feiszli, ``D\'ej\`a View: Looping transformers for multi-view 3D reconstruction,'' 2026, arXiv:2605.30215.
+
+\bibitem{mvp} Y.~Liu, Z.~Wang, and L.~K. Cheng, ``MVP: Multi-view pyramid transformer for 3D reconstruction from many views,'' 2025, arXiv:2512.07806.
+
+\bibitem{improvedpipe} T.~Paul, A.~Beniwal, and M.~K. Rohil, ``Improved 3D reconstruction pipeline for enhancing the quality of 3D model generation from multi-view images,'' \textit{Sci. Rep.}, vol.~15, p.~33231, Sep. 2025.
+
+\bibitem{merg3r} L.~K. Cheng, A.~Shaikh, R.~Liang, Z.~Wu, Y.~Guan, and N.~Vijaykumar, ``MERG3R: A divide-and-conquer approach to large-scale neural visual geometry,'' in \textit{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, Seattle, WA, USA, 2026.
+
+\end{thebibliography}
+
+\end{document}
